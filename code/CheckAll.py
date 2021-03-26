@@ -49,12 +49,12 @@ Feature_Extract_Mode = ['OHE', 'BOW', 'TF-IDF', 'TR', 'WE', 'TM', 'SR', 'AF']  #
 Mode = {'OHE': 'one-hot encoding', 'BOW': 'bag of words', 'TF-IDF': 'term frequency–inverse document frequency',
         'TR': 'TextRank', 'WE': 'word embedding', 'TM': 'topic model', 'SR': 'syntax rules', 'AF': 'automatic features'}
 Machine_Learning_Algorithm = ['SVM', 'RF', 'CRF', 'CNN', 'LSTM', 'GRU', 'Transformer', 'Weighted-Transformer',
-                              'Reformer']
+                              'Reformer', 'FastText', 'Bert']
 Ml = {'SVM': 'Support Vector Machine(SVM)', 'RF': 'Random Forest(RF)', 'CRF': 'Conditional Random Field(CRF)',
       'CNN': 'Convolutional Neural Networks(CNN)', 'LSTM': 'Long Short-Term Memory(LSTM)',
       'GRU': 'Gate Recurrent Unit(GRU)', 'Transformer': 'Transformer',
-      'Weighted-Transformer': 'Weighted-Transformer', 'Reformer': 'Reformer'}
-DeepLearning = ['CNN', 'LSTM', 'GRU', 'Transformer', 'Weighted-Transformer', 'Reformer']
+      'Weighted-Transformer': 'Weighted-Transformer', 'Reformer': 'Reformer', 'FastText': 'FastText'}
+DeepLearning = ['CNN', 'LSTM', 'GRU', 'Transformer', 'Weighted-Transformer', 'Reformer', 'FastText']
 Classification = ['SVM', 'RF', 'CNN', 'LSTM', 'GRU', 'Transformer', 'Weighted-Transformer', 'Reformer']
 SequenceLabelling = ['CRF', 'CNN', 'LSTM', 'GRU', 'Transformer', 'Weighted-Transformer', 'Reformer']
 
@@ -743,6 +743,8 @@ def dl_params_check(args, params_list_dict):
         params_list_dict['d_ff'] = [args.d_ff]
         params_list_dict['n_heads'] = [args.n_heads]
         params_list_dict['n_layer'] = [args.n_layer]
+    elif args.ml == 'FastText':
+        params_list_dict['hidden_dim'] = [args.hidden_dim]
     else:
         params_list_dict['d_model'] = [args.d_model]
         params_list_dict['d_ff'] = [args.d_ff]

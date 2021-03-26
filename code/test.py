@@ -9,7 +9,7 @@ from pytorch_pretrained_bert import BertTokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 with open("vocabulary.txt", "w", encoding='utf-8') as f:
-    for value in tokenizer.vocab.values():
+    for value in tokenizer.vocab.keys():
         f.write(str(value) + '\n')
 
 

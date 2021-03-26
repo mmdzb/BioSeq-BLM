@@ -3,16 +3,49 @@ import torch
 import torch.nn.functional as func
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from pytorch_pretrained_bert import BertModel, BertTokenizer
 
 
 from .utils_former import Transformer, Reformer
 
 # 需要GPU时改为cuda:0，由于个人笔记本显存不足，只能使用CPU计算 by wzb at 3.24
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
+DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 FORMER = ['Transformer', 'Weighted-Transformer', 'Reformer']
 print(DEVICE)
 
-# 新增Bi-LSTM by wzb at 3.25
+
+# 新增Bert 暂无法使用 by wzb at 3.25
+# class BertRes(nn.Module):
+#     def __init__(self, hidden_dim, n_classes):
+#         super(BertRes, self).__init__()
+#         self.bert = BertModel.from_pretrained("./bert_pretrain")
+#         for param in self.bert.parameters():
+#             param.requires_grad = True
+#         self.fc = nn.Linear(hidden_dim, n_classes)
+#
+#     def forward(self, inputs, seq_mask):
+#         _, pooled = self.bert(inputs, attention_mask=seq_mask, output_all_encoded_layers=False)
+#         out = self.fc(pooled)
+#         return out
+
+# 新增FastText 无法使用 by wzb at 3.26
+# class FastTextRes(nn.Module):
+#     def __init__(self, in_dim, hidden_dim, n_classes, prob=0.6):
+#         super(FastTextRes, self).__init__()
+#         self.hidden_dim = hidden_dim
+#         self.fc1 = nn.Linear(in_dim, hidden_dim)
+#         self.fc2 = nn.Linear(hidden_dim, n_classes)
+#         # self.classifier = nn.Sequential(
+#         #     nn.Linear(2 * hidden_dim, hidden_dim),
+#         #     nn.ReLU(),
+#         #     nn.Linear(hidden_dim, n_classes)
+#         # )
+#         # self.softmax = nn.Softmax()
+#
+#     def forward(self, x):
+#         h = self.fc1(x.mean(1))
+#         z = self.fc2(h)
+#         return z
 
 # 定义 Recurrent Network 模型
 class LSTMSeq(nn.Module):
@@ -477,6 +510,17 @@ class TorchNetRes(object):
             n_heads = self.params_dict['n_heads']
             model = TransformerRes(in_dim, n_layer, d_model, d_model, d_model,
                                    d_ff, n_heads, n_classes, self.dropout, True).to(DEVICE)
+        # 添加Bert 暂无法使用 by wzb at 3.25
+        # elif self.net == 'Bert':
+        #     n_layer = self.params_dict['n_layer']
+        #     d_model = self.params_dict['d_model']
+        #     d_ff = self.params_dict['d_ff']
+        #     n_heads = self.params_dict['n_heads']
+        #     model = BertRes(in_dim, n_layer).to(DEVICE)
+        #添加FastText by wzb at 3.26
+        elif self.net == 'FastText':
+            hidden_dim = self.params_dict['hidden_dim']
+            model = FastTextRes(in_dim, hidden_dim, n_classes, self.dropout)
         else:
             d_model = self.params_dict['d_model']
             d_ff = self.params_dict['d_ff']
@@ -497,13 +541,13 @@ class TorchNetRes(object):
         for batch_idx, (inputs, inputs_length, input_mask, target) in enumerate(train_loader):
 
             # 为实现GPU运算，将数据放置于GPU上 by wzb at 3.24
-            torch.cuda.empty_cache()
-            inputs = inputs.cuda()
-            inputs_length = inputs_length.cuda()
-            input_mask = input_mask.cuda()
-            target = target.cuda()
+            # torch.cuda.empty_cache()
+            # inputs = inputs.cuda()
+            # inputs_length = inputs_length.cuda()
+            # input_mask = input_mask.cuda()
+            # target = target.cuda()
 
-            if self.net in ['LSTM', 'GRU', 'CNN']:
+            if self.net in ['LSTM', 'GRU', 'CNN', 'FastText']:
                 output = model(inputs)
             else:
                 output = model(inputs, input_mask)
@@ -535,11 +579,11 @@ class TorchNetRes(object):
         for inputs, inputs_length, input_mask, target in test_loader:
 
             # 为实现GPU运算，将数据放置于GPU上 by wzb at 3.24
-            torch.cuda.empty_cache()
-            inputs = inputs.cuda()
-            inputs_length = inputs_length.cuda()
-            input_mask = input_mask.cuda()
-            target = target.cuda()
+            # torch.cuda.empty_cache()
+            # inputs = inputs.cuda()
+            # inputs_length = inputs_length.cuda()
+            # input_mask = input_mask.cuda()
+            # target = target.cuda()
 
             if self.net in FORMER:
                 output = model(inputs, input_mask)
