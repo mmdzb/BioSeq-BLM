@@ -1,5 +1,6 @@
 import numpy as np
 from torch import nn, optim
+import torch
 
 from ..utils.utils_net import TorchNetSeq
 from ..utils.utils_plot import plot_roc_curve, plot_pr_curve, plot_roc_ind, plot_pr_ind
@@ -28,7 +29,12 @@ def dl_cv_process(ml, vectors, labels, seq_length_list, max_len, folds, out_dir,
     predicted_prob = np.zeros(len(seq_length_list))
 
     count = 0
-    criterion = nn.CrossEntropyLoss()
+    # 交叉熵损失函数不适合二分类任务，暂且不使用，改用BCELoss by wzb at 3.29
+    # criterion = nn.CrossEntropyLoss()
+    weight = np.array([0.28, 0.72])
+    weight = torch.from_numpy(weight).cuda()
+    criterion = nn.CrossEntropyLoss(weight=weight.float())
+    # criterion = nn.BCEWithLogitsLoss(weight=weight)
     in_dim = vectors.shape[-1]
     num_class = len(set(labels))
     multi = True if num_class > 2 else False

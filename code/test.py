@@ -4,13 +4,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LinearRegression
 from pytorch_pretrained_bert import BertTokenizer
+import torch.nn as nn
+import torch
 
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-with open("vocabulary.txt", "w", encoding='utf-8') as f:
-    for value in tokenizer.vocab.keys():
-        f.write(str(value) + '\n')
+# with open("vocabulary.txt", "w", encoding='utf-8') as f:
+#     for value in tokenizer.vocab.keys():
+#         f.write(str(value) + '\n')
 
 
 
@@ -40,3 +42,9 @@ with open("vocabulary.txt", "w", encoding='utf-8') as f:
 # print(data_y[:4])
 # print(model.coef_)
 # print(model.intercept_)
+
+loss = nn.BCEWithLogitsLoss()
+input = torch.randn(3, requires_grad=True)
+target = torch.empty(3).random_(2)
+output = loss(input, target)
+print(output)

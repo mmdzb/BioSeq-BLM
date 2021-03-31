@@ -9,9 +9,10 @@ from pytorch_pretrained_bert import BertModel, BertTokenizer
 from .utils_former import Transformer, Reformer
 
 # 需要GPU时改为cuda:0，由于个人笔记本显存不足，只能使用CPU计算 by wzb at 3.24
-DEVICE = torch.device("cpu" if torch.cuda.is_available() else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 FORMER = ['Transformer', 'Weighted-Transformer', 'Reformer']
-print(DEVICE)
+torch.set_printoptions(threshold=np.inf)
+# print(DEVICE)
 
 
 # 新增Bert 暂无法使用 by wzb at 3.25
@@ -48,21 +49,46 @@ print(DEVICE)
 #         return z
 
 # 定义 Recurrent Network 模型
-class LSTMSeq(nn.Module):
-    def __init__(self, in_dim, hidden_dim, n_layer, n_classes, prob=0.6):
-        super(LSTMSeq, self).__init__()
-        self.n_layer = n_layer
-        self.hidden_dim = hidden_dim
-        self.rnn = nn.LSTM(in_dim, hidden_dim, n_layer, batch_first=True, dropout=prob, bidirectional=True)
-        self.classifier = nn.Sequential(
-            nn.ReLU(),
-            nn.Linear(2 * hidden_dim, n_classes)
-        )
+# class LSTMSeq(nn.Module):
+#     def __init__(self, in_dim, hidden_dim, n_layer, n_classes, prob=0.6):
+#         super(LSTMSeq, self).__init__()
+#         self.n_layer = n_layer
+#         self.hidden_dim = hidden_dim
+#         self.rnn = nn.LSTM(in_dim, hidden_dim, n_layer, batch_first=True, dropout=prob, bidirectional=True)
+#         self.classifier = nn.Sequential(
+#             nn.ReLU(),
+#             nn.Linear(2 * hidden_dim, n_classes)
+#         )
+#
+#     def forward(self, x):  # torch.Size([50, 20, 4])  (batch, seq_len, input_size) --> batch_first=True
+#         out, _ = self.rnn(x)  # [b_size, len, 2*hidden_dim]
+#         out = out[:, -1, :]  # [b_size, 2*hidden_dim]
+#         out = self.classifier(out)  # [b_size, num_classes]
+#         return out
 
-    def forward(self, x):  # torch.Size([50, 20, 4])  (batch, seq_len, input_size) --> batch_first=True
-        out, _ = self.rnn(x)  # [b_size, len, 2*hidden_dim]
-        out = out[:, -1, :]  # [b_size, 2*hidden_dim]
-        out = self.classifier(out)  # [b_size, num_classes]
+# my lstm_seq by wzb at 3.29
+class LSTMSeq(nn.Module):
+    def __init__(self, in_size, hidden_size, num_of_layers, out_size, dropout=0.6):
+        super(LSTMSeq, self).__init__()
+        # self.lstm = nn.LSTM(in_size, hidden_size, num_of_layers, batch_first=True, dropout=dropout, bidirectional=True)
+        # self.classifier = nn.Sequential(
+        #     nn.ReLU(),
+        #     nn.Linear(2*hidden_size, out_size)
+        # )
+        self.l1 = nn.Linear(275*4, hidden_size)
+        self.active = nn.ReLU()
+        self.l2 = nn.Linear(hidden_size, out_size)
+
+    def forward(self, x):
+        # out, _ = self.lstm(x)
+        # out = out[:, -1, :]
+        # out = self.classifier(out)
+        x = x.view(([x.size()[0], -1]))
+        # print(x[0, :, :])
+        # print(input_data[0])
+        out = self.l1(x)
+        out = self.active(out)
+        out = self.l2(out)
         return out
 
 
@@ -127,15 +153,20 @@ class GRURes(nn.Module):
 
 # 这里CNN实现用的二维卷积，但生物信息类似文本，文本中经典的算法是textCNN,使用的一维卷积，这里我也用类似textCNN的模型尝试
 class CNNSeq(nn.Module):
-    def __init__(self, inchannels, outchannels, kernel_size, n_classes, prob):
+    def __init__(self, inchannels, outchannels, kernel_size, n_classes, prob=0.5):
         super(CNNSeq, self).__init__()
         padding = (kernel_size - 1) // 2
+
+        # bn操作 by wzb at 3.29
+        self.bn_input = nn.BatchNorm1d(275, momentum=0.5)
+
         self.cnn = nn.Conv1d(in_channels=inchannels,
                              out_channels=outchannels,
                              kernel_size=kernel_size,
                              padding=padding,
                              stride=1)
         self.dropout = nn.Dropout(prob)
+        self.bn = nn.BatchNorm1d(outchannels, momentum=0.5)
         self.classifier = nn.Sequential(
             nn.Linear(outchannels, 2 * outchannels),
             nn.ReLU(),
@@ -143,8 +174,10 @@ class CNNSeq(nn.Module):
         )
 
     def forward(self, x):
+        x = self.bn_input(x)
         input_data = x.permute(0, 2, 1)
         output = self.cnn(input_data)
+        output = self.bn(output)
         output = func.max_pool1d(output, kernel_size=output.shape[2])
         output = output.transpose(1, 2).contiguous()
         output = output.view(output.shape[0], -1)
@@ -418,14 +451,27 @@ class TorchNetSeq(object):
         train_loader = self.prepare(train_x, train_y, train_len_list)
 
         for batch_idx, (inputs, inputs_length, input_mask, target) in enumerate(train_loader):
+
+            torch.cuda.empty_cache()
+            inputs = inputs.cuda()
+            inputs_length = inputs_length.cuda()
+            input_mask = input_mask.cuda()
+            target = target.cuda()
+
             if self.net in FORMER:
                 output = model(inputs, input_mask)
             else:
                 output = model(inputs)
-            # print('output', output)
-            # print('target', target)
+            # 为实现二分类任务，由softmax修改为sigmoid by wzb at 3.29
+
+            # target = torch.unsqueeze(target, 1)
+            # target = torch.cat((target, 1-target), 1)
+            # loss = self.criterion(output, target.float())
+
             loss = self.criterion(output, target)
+
             optimizer.zero_grad()
+
             loss.backward()
             optimizer.step()
             if (batch_idx + 1) % 20 == 0:
@@ -444,13 +490,36 @@ class TorchNetSeq(object):
         test_loader = self.prepare(test_x, test_y, test_len_list, shuffle=False)
 
         for inputs, inputs_length, input_mask, target in test_loader:
+
+            torch.cuda.empty_cache()
+            inputs = inputs.cuda()
+            inputs_length = inputs_length.cuda()
+            input_mask = input_mask.cuda()
+            target = target.cuda()
+
             if self.net in FORMER:
                 output = model(inputs, input_mask)
             else:
                 output = model(inputs)
+            # 为实现二分类任务，由softmax修改为sigmoid by wzb at 3.29
+            # output_1 = output[:, -1:, 1]
+            # output_1 = torch.softmax(output, dim=-1)
+            # output_1 = torch.max(output_1, dim=-1)
+            # test_loss += self.criterion(output_1.values, target.float())
+            # output = torch.softmax(output, dim=-1)
+            # # output = output[:, -1]
+            # predict_label = torch.max(output, dim=-1)[1]
+
+            # target1 = torch.unsqueeze(target, 1)
+            # target1 = torch.cat((target1, 1 - target1), 1)
+            # test_loss += self.criterion(output, target1.float())
+            # output = torch.softmax(output, dim=-1)
+            # predict_label = torch.max(output, dim=-1)[1]
+
             test_loss += self.criterion(output, target)
-            output = func.softmax(output, dim=-1)
+            output = torch.softmax(output, dim=-1)
             predict_label = torch.max(output, dim=-1)[1]
+
             num = 0
             for i in range(len(input_mask)):
                 prob_list.append(float(output[i][1]))

@@ -375,18 +375,19 @@ if __name__ == '__main__':
     # parameters for rf
     parse.add_argument('-tree', type=int, nargs='*', help="The number of trees in the forest for 'RF'.")
     # ----------------------- parameters for DeepLearning---------------------- #
-    parse.add_argument('-lr', type=float, default=0.99,
+    parse.add_argument('-lr', type=float, default=0.1,
                        help="The value of learning rate, it works with 'AF' mode and deep learning algorithm.")
+    # 原始为0.99 by wzb at 3.29
     parse.add_argument('-epochs', type=int,
                        help="The epoch number of train process for 'AF' mode and deep learning algorithm.")
     parse.add_argument('-batch_size', type=int, default=5,
                        help="The size of mini-batch, it works with 'AF' mode and deep learning algorithm.")
-    parse.add_argument('-dropout', type=float, default=0.6,
+    parse.add_argument('-dropout', type=float, default=0.5,
                        help="The value of dropout prob, it works with 'AF' mode and deep learning algorithm.")
     # parameters for LSTM, GRU
     parse.add_argument('-hidden_dim', type=int, default=256,
                        help="The size of the intermediate (a.k.a., feed forward) layer, it works with 'AF' mode, "
-                            "GRU and LSTM.")
+                            "GRU and LSTM.")  # 256
     parse.add_argument('-n_layer', type=int, default=2,
                        help="The number of units for LSTM and GRU, it works with 'AF' mode, GRU and LSTM.")
     # parameters for CNN

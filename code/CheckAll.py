@@ -156,6 +156,7 @@ def seq_feature_check(args):
     if args.mode == 'WE':
         assert args.method in Method_Word_Embedding, "Please check method for 'WE' mode!"
 
+
     if args.mode == 'SR':
         assert args.method in Method_Syntax_Rules, "Please check method for 'SR' mode!"
 
