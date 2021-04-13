@@ -75,9 +75,9 @@ class LSTMSeq(nn.Module):
         #     nn.ReLU(),
         #     nn.Linear(2*hidden_size, out_size)
         # )
-        self.l1 = nn.Linear(275*4, hidden_size)
-        self.active = nn.ReLU()
-        self.l2 = nn.Linear(hidden_size, out_size)
+        self.l1 = nn.Linear(275*4, out_size)
+        # self.active = nn.ReLU()
+        # self.l2 = nn.Linear(hidden_size, out_size)
 
     def forward(self, x):
         # out, _ = self.lstm(x)
@@ -87,8 +87,8 @@ class LSTMSeq(nn.Module):
         # print(x[0, :, :])
         # print(input_data[0])
         out = self.l1(x)
-        out = self.active(out)
-        out = self.l2(out)
+        # out = self.active(out)
+        # out = self.l2(out)
         return out
 
 

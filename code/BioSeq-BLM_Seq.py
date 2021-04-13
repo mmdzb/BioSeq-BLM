@@ -375,7 +375,7 @@ if __name__ == '__main__':
     # parameters for rf
     parse.add_argument('-tree', type=int, nargs='*', help="The number of trees in the forest for 'RF'.")
     # ----------------------- parameters for DeepLearning---------------------- #
-    parse.add_argument('-lr', type=float, default=0.1,
+    parse.add_argument('-lr', type=float, default=0.01,
                        help="The value of learning rate, it works with 'AF' mode and deep learning algorithm.")
     # 原始为0.99 by wzb at 3.29
     parse.add_argument('-epochs', type=int,

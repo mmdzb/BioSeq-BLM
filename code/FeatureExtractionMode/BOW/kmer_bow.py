@@ -59,7 +59,10 @@ def km_bow(input_file, k, alphabet, rev_comp=False):
     vector = []
     km_list = make_km_list(k, alphabet)
 
+    non = 1
     for seq in seq_list:
+        print(non)
+        non += 1
         count_sum = 0
 
         # Generate the km frequency dict.

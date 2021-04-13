@@ -31,7 +31,7 @@ def dl_cv_process(ml, vectors, labels, seq_length_list, max_len, folds, out_dir,
     count = 0
     # 交叉熵损失函数不适合二分类任务，暂且不使用，改用BCELoss by wzb at 3.29
     # criterion = nn.CrossEntropyLoss()
-    weight = np.array([0.28, 0.72])
+    weight = np.array([0.25, 0.75])
     weight = torch.from_numpy(weight).cuda()
     criterion = nn.CrossEntropyLoss(weight=weight.float())
     # criterion = nn.BCEWithLogitsLoss(weight=weight)

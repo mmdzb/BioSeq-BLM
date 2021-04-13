@@ -39,7 +39,7 @@ def seq_fe_process(args):
     args.results_dir = create_results_dir(args, args.current_dir)
 
     # 合并序列文件
-    input_one_file = create_all_seq_file(args.seq_file, args.result_dir)
+    input_one_file = create_all_seq_file(args.seq_file, args.results_dir)
     # 统计样本数目和序列长度
     sp_num_list, seq_len_list = seq_file2one(args.category, args.seq_file, args.label, input_one_file)
     # 生成标签数组
